@@ -127,10 +127,10 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.BACKEND_PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n==================================================`);
   console.log(`👓 DRASHTI OPTIC BILLING BACKEND SERVICE RUNNING`);
-  console.log(`📡 Port: ${PORT}`);
+  console.log(`📡 Port: ${PORT} (0.0.0.0)`);
   console.log(`🌍 Health: http://localhost:${PORT}/api/health`);
   console.log(`==================================================\n`);
 });

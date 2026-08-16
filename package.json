@@ -2,13 +2,12 @@
   "name": "drashti-optic",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev && npm --prefix frontend run build",
-    "start": "npx concurrently \"npm --prefix backend start\" \"npm --prefix frontend start -- -p ${PORT:-10000}\"",
+    "start": "node start.js",
     "create-admin": "npm --prefix backend run create-admin",
     "seed": "npm --prefix backend run seed"
   },
-  "dependencies": {
-    "concurrently": "^9.1.2"
-  }
+  "dependencies": {}
 }
