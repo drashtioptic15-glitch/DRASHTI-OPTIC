@@ -2,11 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
-    const backendBase = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    const backendHost = process.env.BACKEND_HOST || '127.0.0.1';
+    const backendPort = process.env.BACKEND_PORT || '5000';
     return [
       {
         source: '/api/:path*',
-        destination: `${backendBase}/api/:path*`,
+        destination: `http://${backendHost}:${backendPort}/api/:path*`,
+      },
+      {
+        source: '/invoices/:path*',
+        destination: `http://${backendHost}:${backendPort}/invoices/:path*`,
       },
     ];
   },

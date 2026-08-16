@@ -105,7 +105,7 @@ app.use('*', (req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.BACKEND_PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
   console.log(`👓 DRASHTI OPTIC BILLING BACKEND SERVICE RUNNING`);

@@ -1,41 +1,21 @@
 services:
   # ----------------------------------------------------
-  # 1. Backend REST API Service
+  # Unified Frontend + Backend Web Service
   # ----------------------------------------------------
   - type: web
-    name: drashti-optic-backend
+    name: drashti-optic
     runtime: node
     plan: free
-    rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm run build
     startCommand: npm start
-    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
-      - key: FRONTEND_URL
-        sync: false
-
-  # ----------------------------------------------------
-  # 2. Frontend Next.js Web Service
-  # ----------------------------------------------------
-  - type: web
-    name: drashti-optic-frontend
-    runtime: node
-    plan: free
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        sync: false
+      - key: BACKEND_PORT
+        value: 5000
