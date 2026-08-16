@@ -3,26 +3,45 @@ import { getDB } from '../config/database.js';
 import { Query } from './baseQuery.js';
 
 class CustomerModel {
+  async generateCustomerId() {
+    const db = getDB();
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM customers`);
+    const count = (countRow ? countRow.count : 0) + 1;
+    return `CUST-${String(count).padStart(4, '0')}`;
+  }
+
   find(filter = {}) {
     const db = getDB();
     const clauses = [];
     const params = [];
 
-    if (filter.search || filter.$or) {
-      const term = filter.search || (filter.$or ? (filter.$or[0]?.name?.$regex || filter.$or[0]?.mobile?.$regex || '') : '');
-      if (term) {
-        clauses.push('(name LIKE ? OR mobile LIKE ? OR alternateMobile LIKE ? OR customerId LIKE ?)');
-        const searchPattern = `%${term.replace(/^\^|\$$/g, '').trim()}%`;
-        params.push(searchPattern, searchPattern, searchPattern, searchPattern);
-      }
+    const searchTerm =
+      filter.search ||
+      filter.query ||
+      (filter.$or
+        ? filter.$or[0]?.name?.$regex ||
+          filter.$or[0]?.mobile?.$regex ||
+          filter.$or[0]?.customerId?.$regex ||
+          ''
+        : '') ||
+      (typeof filter.name === 'string' ? filter.name : (filter.name?.$regex || ''));
+
+    if (searchTerm) {
+      const pattern = `%${String(searchTerm).replace(/^\^|\$$/g, '').trim()}%`;
+      clauses.push(
+        '(name LIKE ? OR mobile LIKE ? OR alternateMobile LIKE ? OR customerId LIKE ? OR email LIKE ?)'
+      );
+      params.push(pattern, pattern, pattern, pattern, pattern);
     }
-    if (filter.mobile) {
-      clauses.push('mobile = ?');
-      params.push(filter.mobile.trim());
+
+    if (filter.mobile && !searchTerm) {
+      clauses.push('mobile LIKE ?');
+      params.push(`%${filter.mobile.trim()}%`);
     }
-    if (filter.customerId) {
-      clauses.push('customerId = ?');
-      params.push(filter.customerId.trim());
+
+    if (filter.customerId && !searchTerm) {
+      clauses.push('customerId LIKE ?');
+      params.push(`%${filter.customerId.trim()}%`);
     }
 
     const self = this;
@@ -90,9 +109,7 @@ class CustomerModel {
 
     let customerId = data.customerId;
     if (!customerId) {
-      const countRow = await db.get(`SELECT COUNT(*) as count FROM customers`);
-      const count = (countRow ? countRow.count : 0) + 1;
-      customerId = `CUST-${String(count).padStart(4, '0')}`;
+      customerId = await this.generateCustomerId();
     }
 
     const customer = {
@@ -142,41 +159,45 @@ class CustomerModel {
     return this._wrap(customer);
   }
 
-  async findByIdAndUpdate(id, updates, options = {}) {
+  findByIdAndUpdate(id, updates, options = {}) {
     const db = getDB();
-    const existing = await db.get(`SELECT * FROM customers WHERE _id = ? LIMIT 1`, [id]);
-    if (!existing) return null;
+    const self = this;
+    return new Query(async () => {
+      const existing = await db.get(`SELECT * FROM customers WHERE _id = ? LIMIT 1`, [id]);
+      if (!existing) return null;
 
-    const now = new Date().toISOString();
-    const setClauses = ['updatedAt = ?'];
-    const params = [now];
+      const payload = updates.$set || updates;
+      const now = new Date().toISOString();
+      const setClauses = ['updatedAt = ?'];
+      const params = [now];
 
-    const fields = [
-      'name',
-      'mobile',
-      'alternateMobile',
-      'email',
-      'address',
-      'city',
-      'state',
-      'pincode',
-      'notes',
-      'totalPurchases',
-      'totalPaid',
-      'totalDue',
-      'lastPurchaseDate',
-    ];
+      const fields = [
+        'name',
+        'mobile',
+        'alternateMobile',
+        'email',
+        'address',
+        'city',
+        'state',
+        'pincode',
+        'notes',
+        'totalPurchases',
+        'totalPaid',
+        'totalDue',
+        'lastPurchaseDate',
+      ];
 
-    for (const field of fields) {
-      if (updates[field] !== undefined) {
-        setClauses.push(`${field} = ?`);
-        params.push(updates[field]);
+      for (const field of fields) {
+        if (payload[field] !== undefined) {
+          setClauses.push(`${field} = ?`);
+          params.push(payload[field]);
+        }
       }
-    }
 
-    params.push(id);
-    await db.run(`UPDATE customers SET ${setClauses.join(', ')} WHERE _id = ?`, params);
-    return await this.findById(id);
+      params.push(id);
+      await db.run(`UPDATE customers SET ${setClauses.join(', ')} WHERE _id = ?`, params);
+      return await self.findById(id);
+    });
   }
 
   async findByIdAndDelete(id) {
@@ -193,13 +214,23 @@ class CustomerModel {
     const clauses = [];
     const params = [];
 
-    if (filter.search || filter.$or) {
-      const term = filter.search || (filter.$or ? (filter.$or[0]?.name?.$regex || filter.$or[0]?.mobile?.$regex || '') : '');
-      if (term) {
-        clauses.push('(name LIKE ? OR mobile LIKE ? OR alternateMobile LIKE ? OR customerId LIKE ?)');
-        const searchPattern = `%${term.replace(/^\^|\$$/g, '').trim()}%`;
-        params.push(searchPattern, searchPattern, searchPattern, searchPattern);
-      }
+    const searchTerm =
+      filter.search ||
+      filter.query ||
+      (filter.$or
+        ? filter.$or[0]?.name?.$regex ||
+          filter.$or[0]?.mobile?.$regex ||
+          filter.$or[0]?.customerId?.$regex ||
+          ''
+        : '') ||
+      (typeof filter.name === 'string' ? filter.name : (filter.name?.$regex || ''));
+
+    if (searchTerm) {
+      const pattern = `%${String(searchTerm).replace(/^\^|\$$/g, '').trim()}%`;
+      clauses.push(
+        '(name LIKE ? OR mobile LIKE ? OR alternateMobile LIKE ? OR customerId LIKE ? OR email LIKE ?)'
+      );
+      params.push(pattern, pattern, pattern, pattern, pattern);
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';

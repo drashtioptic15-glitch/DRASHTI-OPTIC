@@ -48,26 +48,12 @@ export const getCustomers = async (req, res, next) => {
 // @route   GET /api/customers/search
 export const searchCustomers = async (req, res, next) => {
   try {
-    const { name, mobile, query } = req.query;
-    let filter = {};
+    const { name, mobile, query, search } = req.query;
+    const searchTerm = (query || search || name || mobile || '').trim();
 
-    if (query) {
-      filter = {
-        $or: [
-          { name: { $regex: query, $options: 'i' } },
-          { mobile: { $regex: query, $options: 'i' } },
-          { customerId: { $regex: query, $options: 'i' } },
-        ],
-      };
-    } else if (name) {
-      filter.name = { $regex: name, $options: 'i' };
-    } else if (mobile) {
-      filter.mobile = { $regex: mobile, $options: 'i' };
-    }
-
-    const customers = await Customer.find(filter)
-      .sort({ updatedAt: -1 })
-      .limit(15);
+    const customers = await Customer.find({ search: searchTerm })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(20);
 
     res.status(200).json({
       success: true,
