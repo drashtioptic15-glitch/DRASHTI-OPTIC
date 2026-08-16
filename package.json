@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm --prefix backend install && npm --prefix frontend install && npm --prefix frontend run build",
+    "build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev && npm --prefix frontend run build",
     "start": "npx concurrently \"npm --prefix backend start\" \"npm --prefix frontend start -- -p ${PORT:-10000}\"",
     "create-admin": "npm --prefix backend run create-admin",
     "seed": "npm --prefix backend run seed"
