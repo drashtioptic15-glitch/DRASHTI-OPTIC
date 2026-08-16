@@ -203,6 +203,9 @@ class PrescriptionModel {
       id: row._id,
       rightEye,
       leftEye,
+      toObject() {
+        return { ...this };
+      },
       async save() {
         return await PrescriptionModel.prototype.findByIdAndUpdate(this._id, this);
       },

@@ -11,8 +11,9 @@ export const getCategories = async (req, res, next) => {
     const categoriesWithCount = await Promise.all(
       categories.map(async (cat) => {
         const itemCount = await Item.countDocuments({ category: cat._id });
+        const catData = cat.toObject ? cat.toObject() : cat;
         return {
-          ...cat.toObject(),
+          ...catData,
           itemCount,
         };
       })
@@ -40,11 +41,12 @@ export const getCategoryById = async (req, res, next) => {
     }
 
     const itemCount = await Item.countDocuments({ category: category._id });
+    const catData = category.toObject ? category.toObject() : category;
 
     res.status(200).json({
       success: true,
       data: {
-        ...category.toObject(),
+        ...catData,
         itemCount,
       },
     });

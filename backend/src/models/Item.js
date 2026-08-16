@@ -253,6 +253,9 @@ class ItemModel {
       stock: Number(row.stock),
       minimumStock: Number(row.minimumStock),
       stockStatus,
+      toObject() {
+        return { ...this };
+      },
       async save() {
         return await ItemModel.prototype.findByIdAndUpdate(this._id, this);
       },

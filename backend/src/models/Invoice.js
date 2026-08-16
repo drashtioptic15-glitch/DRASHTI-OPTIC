@@ -353,6 +353,9 @@ class InvoiceModel {
       cashAmount: Number(row.cashAmount || 0),
       onlineAmount: Number(row.onlineAmount || 0),
       dueAmount: Number(row.dueAmount || 0),
+      toObject() {
+        return { ...this };
+      },
       async save() {
         return await InvoiceModel.prototype.findByIdAndUpdate(this._id, this);
       },

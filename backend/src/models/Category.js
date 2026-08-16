@@ -13,8 +13,11 @@ class CategoryModel {
       params.push(filter.status);
     }
     if (filter.name) {
+      const val = typeof filter.name === 'object' && filter.name.$regex
+        ? filter.name.$regex.replace(/^\^|\$$/g, '').trim()
+        : String(filter.name).trim();
       clauses.push('LOWER(name) = LOWER(?)');
-      params.push(filter.name);
+      params.push(val);
     }
 
     const self = this;
@@ -58,8 +61,11 @@ class CategoryModel {
     const params = [];
 
     if (filter.name) {
+      const val = typeof filter.name === 'object' && filter.name.$regex
+        ? filter.name.$regex.replace(/^\^|\$$/g, '').trim()
+        : String(filter.name).trim();
       clauses.push('LOWER(name) = LOWER(?)');
-      params.push(filter.name.trim());
+      params.push(val);
     }
     if (filter._id) {
       clauses.push('_id = ?');
@@ -103,17 +109,19 @@ class CategoryModel {
     const setClauses = ['updatedAt = ?'];
     const params = [now];
 
-    if (updates.name !== undefined) {
+    const payload = updates.$set || updates;
+
+    if (payload.name !== undefined) {
       setClauses.push('name = ?');
-      params.push(updates.name.trim());
+      params.push(payload.name.trim());
     }
-    if (updates.description !== undefined) {
+    if (payload.description !== undefined) {
       setClauses.push('description = ?');
-      params.push(updates.description.trim());
+      params.push(payload.description.trim());
     }
-    if (updates.status !== undefined) {
+    if (payload.status !== undefined) {
       setClauses.push('status = ?');
-      params.push(updates.status);
+      params.push(payload.status);
     }
 
     params.push(id);
@@ -150,6 +158,9 @@ class CategoryModel {
     return {
       ...row,
       id: row._id,
+      toObject() {
+        return { ...this };
+      },
     };
   }
 }

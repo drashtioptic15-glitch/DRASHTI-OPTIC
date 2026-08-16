@@ -151,6 +151,9 @@ class UserModel {
       select(fields) {
         return this;
       },
+      toObject() {
+        return { ...this };
+      },
     };
   }
 }

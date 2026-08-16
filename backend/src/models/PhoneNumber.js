@@ -159,6 +159,9 @@ class PhoneNumberModel {
     return {
       ...row,
       id: row._id,
+      toObject() {
+        return { ...this };
+      },
     };
   }
 }

@@ -193,10 +193,11 @@ export const getSaleById = async (req, res, next) => {
     // Fetch related transactions
     const transactions = await Transaction.find({ invoice: invoice._id }).sort({ createdAt: 1 });
 
+    const invoiceData = invoice.toObject ? invoice.toObject() : invoice;
     res.status(200).json({
       success: true,
       data: {
-        ...invoice.toObject(),
+        ...invoiceData,
         transactions,
       },
     });

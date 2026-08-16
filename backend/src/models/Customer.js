@@ -215,6 +215,9 @@ class CustomerModel {
       totalPurchases: Number(row.totalPurchases || 0),
       totalPaid: Number(row.totalPaid || 0),
       totalDue: Number(row.totalDue || 0),
+      toObject() {
+        return { ...this };
+      },
       async save() {
         return await CustomerModel.prototype.findByIdAndUpdate(this._id, this);
       },

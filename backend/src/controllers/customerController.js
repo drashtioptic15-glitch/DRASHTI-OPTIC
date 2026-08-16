@@ -98,10 +98,11 @@ export const getCustomerById = async (req, res, next) => {
     const prescriptions = await Prescription.find({ customer: customer._id })
       .sort({ createdAt: -1 });
 
+    const custData = customer.toObject ? customer.toObject() : customer;
     res.status(200).json({
       success: true,
       data: {
-        ...customer.toObject(),
+        ...custData,
         invoices,
         prescriptions,
       },

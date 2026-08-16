@@ -162,6 +162,9 @@ class TransactionModel {
       ...row,
       id: row._id,
       amount: Number(row.amount || 0),
+      toObject() {
+        return { ...this };
+      },
     };
   }
 }
