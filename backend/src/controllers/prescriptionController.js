@@ -87,9 +87,9 @@ export const getPrescriptionById = async (req, res, next) => {
 // @route   POST /api/prescriptions
 export const createPrescription = async (req, res, next) => {
   try {
-    const { customerId, customerData, rightEye, leftEye, doctor, notes, prescriptionDate } = req.body;
+    const { customerId, customer, customerData, rightEye, leftEye, doctor, notes, prescriptionDate } = req.body;
 
-    let targetCustomerId = customerId;
+    let targetCustomerId = customerId || customer;
 
     // If customerId not provided, search or create customer
     if (!targetCustomerId && customerData) {

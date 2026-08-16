@@ -1,5 +1,6 @@
 import Item from '../models/Item.js';
 import Invoice from '../models/Invoice.js';
+import { getDB } from '../config/database.js';
 
 // @desc    Get items (paginated, filters, search)
 // @route   GET /api/items
@@ -130,11 +131,21 @@ export const createItem = async (req, res, next) => {
       status,
     } = req.body;
 
-    if (!name || !category || purchasePrice === undefined || sellingPrice === undefined) {
+    if (!name || purchasePrice === undefined || sellingPrice === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide item name, category, purchase price, and selling price',
+        message: 'Please provide item name, purchase price, and selling price',
       });
+    }
+
+    let finalCategory = category;
+    if (!finalCategory) {
+      const Category = (await import('../models/Category.js')).default;
+      let firstCat = await Category.findOne({});
+      if (!firstCat) {
+        firstCat = await Category.create({ name: 'General Eyewear', description: 'Default category' });
+      }
+      finalCategory = firstCat._id;
     }
 
     // Auto-generate SKU if not provided
@@ -209,8 +220,13 @@ export const deleteItem = async (req, res, next) => {
       });
     }
 
-    // Check if item was used in any invoices
-    const usedInInvoice = await Invoice.countDocuments({ 'items.item': item._id });
+    const db = getDB();
+    const invoiceMatch = await db.get(
+      `SELECT COUNT(*) as count FROM invoices WHERE items LIKE ?`,
+      [`%${item._id}%`]
+    );
+    const usedInInvoice = invoiceMatch ? invoiceMatch.count : 0;
+
     if (usedInInvoice > 0) {
       return res.status(400).json({
         success: false,

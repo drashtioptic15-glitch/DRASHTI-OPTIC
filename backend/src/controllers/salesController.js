@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { getDB } from '../config/database.js';
 import Invoice from '../models/Invoice.js';
 import Customer from '../models/Customer.js';
 import Item from '../models/Item.js';
@@ -31,10 +31,9 @@ export const getDateRange = (filter, customStartDate, customEndDate) => {
 
     case 'this_week':
       const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
-      start = new Date(now.setDate(diff));
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
       start.setHours(0, 0, 0, 0);
-      end = new Date();
       end.setHours(23, 59, 59, 999);
       break;
 
@@ -48,18 +47,16 @@ export const getDateRange = (filter, customStartDate, customEndDate) => {
       end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       break;
 
+    case 'this_year':
+      start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+
     case 'custom':
-      if (customStartDate) {
+      if (customStartDate && customEndDate) {
         start = new Date(customStartDate);
         start.setHours(0, 0, 0, 0);
-      } else {
-        start = new Date(0);
-      }
-      if (customEndDate) {
         end = new Date(customEndDate);
-        end.setHours(23, 59, 59, 999);
-      } else {
-        end = new Date();
         end.setHours(23, 59, 59, 999);
       }
       break;
@@ -72,10 +69,11 @@ export const getDateRange = (filter, customStartDate, customEndDate) => {
   return { start, end };
 };
 
-// @desc    Get all sales/invoices with advanced filters & summary cards
+// @desc    Get all sales / invoices with pagination, filters, and totals
 // @route   GET /api/sales
 export const getSales = async (req, res, next) => {
   try {
+    const db = getDB();
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
@@ -91,68 +89,72 @@ export const getSales = async (req, res, next) => {
       whatsappStatus,
     } = req.query;
 
-    let query = {};
+    const clauses = [];
+    const params = [];
 
     // Date filtering
     if (filter) {
       const { start, end } = getDateRange(filter, startDate, endDate);
       if (start && end) {
-        query.invoiceDate = { $gte: start, $lte: end };
+        clauses.push('invoiceDate >= ? AND invoiceDate <= ?');
+        params.push(new Date(start).toISOString(), new Date(end).toISOString());
       }
     }
 
     // Search query
     if (search) {
-      query.$or = [
-        { invoiceNumber: { $regex: search, $options: 'i' } },
-        { 'customerSnapshot.name': { $regex: search, $options: 'i' } },
-        { 'customerSnapshot.mobile': { $regex: search, $options: 'i' } },
-      ];
+      clauses.push('(invoiceNumber LIKE ? OR customerSnapshot LIKE ?)');
+      const pattern = `%${search.trim()}%`;
+      params.push(pattern, pattern);
     }
 
     if (customer) {
-      query.customer = customer;
+      clauses.push('customer = ?');
+      params.push(customer);
     }
 
     if (paymentStatus && paymentStatus !== 'all') {
-      query.paymentStatus = paymentStatus;
+      clauses.push('paymentStatus = ?');
+      params.push(paymentStatus);
     }
 
     if (paymentMethod && paymentMethod !== 'all') {
-      query.paymentMethod = paymentMethod;
+      clauses.push('paymentMethod = ?');
+      params.push(paymentMethod);
     }
 
     if (whatsappStatus && whatsappStatus !== 'all') {
-      query.whatsappStatus = whatsappStatus;
+      clauses.push('whatsappStatus = ?');
+      params.push(whatsappStatus);
     }
 
-    // Compute aggregate summary for the filtered set
-    const summaryAgg = await Invoice.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalSales: { $sum: '$grandTotal' },
-          totalPaid: { $sum: { $add: ['$cashAmount', '$onlineAmount'] } },
-          totalDue: { $sum: '$dueAmount' },
-          cashTotal: { $sum: '$cashAmount' },
-          onlineTotal: { $sum: '$onlineAmount' },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
 
-    const summary = summaryAgg[0] || {
-      totalSales: 0,
-      totalPaid: 0,
-      totalDue: 0,
-      cashTotal: 0,
-      onlineTotal: 0,
-      count: 0,
+    // Compute aggregate summary for the filtered set via SQL
+    const summaryRow = await db.get(
+      `SELECT SUM(grandTotal) as totalSales,
+              SUM(cashAmount + onlineAmount) as totalPaid,
+              SUM(dueAmount) as totalDue,
+              SUM(cashAmount) as cashTotal,
+              SUM(onlineAmount) as onlineTotal,
+              COUNT(*) as count
+       FROM invoices ${where}`,
+      params
+    );
+
+    const summary = {
+      totalSales: Number(summaryRow?.totalSales || 0),
+      totalPaid: Number(summaryRow?.totalPaid || 0),
+      totalDue: Number(summaryRow?.totalDue || 0),
+      cashTotal: Number(summaryRow?.cashTotal || 0),
+      onlineTotal: Number(summaryRow?.onlineTotal || 0),
+      count: Number(summaryRow?.count || 0),
     };
 
-    const total = await Invoice.countDocuments(query);
-    const invoices = await Invoice.find(query)
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM invoices ${where}`, params);
+    const total = countRow ? countRow.count : 0;
+
+    const invoices = await Invoice.find(req.query)
       .populate('customer', 'customerId name mobile')
       .sort({ invoiceDate: -1, createdAt: -1 })
       .skip(skip)

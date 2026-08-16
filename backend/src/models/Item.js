@@ -116,7 +116,10 @@ class ItemModel {
     const item = {
       _id: id,
       name: data.name.trim(),
-      category: typeof data.category === 'object' ? data.category._id : data.category,
+      category:
+        typeof data.category === 'object' && data.category
+          ? data.category._id || data.category.id
+          : data.category || 'cat_general',
       sku: data.sku ? data.sku.trim() : '',
       brand: data.brand ? data.brand.trim() : '',
       description: data.description ? data.description.trim() : '',
@@ -152,59 +155,67 @@ class ItemModel {
     return this._wrap(item);
   }
 
-  async findByIdAndUpdate(id, updates, options = {}) {
+  findByIdAndUpdate(id, updates, options = {}) {
     const db = getDB();
-    const existing = await db.get(`SELECT * FROM items WHERE _id = ? LIMIT 1`, [id]);
-    if (!existing) return null;
+    const self = this;
+    return new Query(async ({ populate }) => {
+      const existing = await db.get(`SELECT * FROM items WHERE _id = ? LIMIT 1`, [id]);
+      if (!existing) return null;
 
-    const now = new Date().toISOString();
-    const setClauses = ['updatedAt = ?'];
-    const params = [now];
+      const payload = updates.$set || updates;
+      const now = new Date().toISOString();
+      const setClauses = ['updatedAt = ?'];
+      const params = [now];
 
-    if (updates.name !== undefined) {
-      setClauses.push('name = ?');
-      params.push(updates.name.trim());
-    }
-    if (updates.category !== undefined) {
-      setClauses.push('category = ?');
-      params.push(typeof updates.category === 'object' ? updates.category._id : updates.category);
-    }
-    if (updates.sku !== undefined) {
-      setClauses.push('sku = ?');
-      params.push(updates.sku.trim());
-    }
-    if (updates.brand !== undefined) {
-      setClauses.push('brand = ?');
-      params.push(updates.brand.trim());
-    }
-    if (updates.description !== undefined) {
-      setClauses.push('description = ?');
-      params.push(updates.description.trim());
-    }
-    if (updates.purchasePrice !== undefined) {
-      setClauses.push('purchasePrice = ?');
-      params.push(Number(updates.purchasePrice));
-    }
-    if (updates.sellingPrice !== undefined) {
-      setClauses.push('sellingPrice = ?');
-      params.push(Number(updates.sellingPrice));
-    }
-    if (updates.stock !== undefined) {
-      setClauses.push('stock = ?');
-      params.push(Number(updates.stock));
-    }
-    if (updates.minimumStock !== undefined) {
-      setClauses.push('minimumStock = ?');
-      params.push(Number(updates.minimumStock));
-    }
-    if (updates.status !== undefined) {
-      setClauses.push('status = ?');
-      params.push(updates.status);
-    }
+      if (payload.name !== undefined) {
+        setClauses.push('name = ?');
+        params.push(payload.name.trim());
+      }
+      if (payload.category !== undefined) {
+        setClauses.push('category = ?');
+        params.push(
+          typeof payload.category === 'object' && payload.category
+            ? payload.category._id || payload.category.id
+            : payload.category
+        );
+      }
+      if (payload.sku !== undefined) {
+        setClauses.push('sku = ?');
+        params.push(payload.sku.trim());
+      }
+      if (payload.brand !== undefined) {
+        setClauses.push('brand = ?');
+        params.push(payload.brand.trim());
+      }
+      if (payload.description !== undefined) {
+        setClauses.push('description = ?');
+        params.push(payload.description.trim());
+      }
+      if (payload.purchasePrice !== undefined) {
+        setClauses.push('purchasePrice = ?');
+        params.push(Number(payload.purchasePrice));
+      }
+      if (payload.sellingPrice !== undefined) {
+        setClauses.push('sellingPrice = ?');
+        params.push(Number(payload.sellingPrice));
+      }
+      if (payload.stock !== undefined) {
+        setClauses.push('stock = ?');
+        params.push(Number(payload.stock));
+      }
+      if (payload.minimumStock !== undefined) {
+        setClauses.push('minimumStock = ?');
+        params.push(Number(payload.minimumStock));
+      }
+      if (payload.status !== undefined) {
+        setClauses.push('status = ?');
+        params.push(payload.status);
+      }
 
-    params.push(id);
-    await db.run(`UPDATE items SET ${setClauses.join(', ')} WHERE _id = ?`, params);
-    return await this.findById(id);
+      params.push(id);
+      await db.run(`UPDATE items SET ${setClauses.join(', ')} WHERE _id = ?`, params);
+      return await self.findById(id).populate(populate);
+    });
   }
 
   async findByIdAndDelete(id) {
