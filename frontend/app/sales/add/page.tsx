@@ -496,35 +496,11 @@ export default function AddSalePage() {
         toast.success(`Invoice #${inv.invoiceNumber} created successfully!`);
 
         if (wa?.success) {
-          toast.success('Invoice PDF sent to customer WhatsApp!');
-        }
-
-        // Automatic WhatsApp dispatch flow: Open customer chat with prefilled invoice summary & PDF link
-        const custPhone = inv.customerSnapshot?.mobile || customerData.mobile;
-        const cleanDigits = custPhone ? custPhone.replace(/\D/g, '') : '';
-        const targetPhone = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
-
-        if (targetPhone) {
-          const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
-          const pdfLink = `${originUrl}/api/invoices/${inv._id}/pdf`;
-          const custName = inv.customerSnapshot?.name || customerData.name || 'Customer';
-          const paidAmt = Number(inv.cashAmount || 0) + Number(inv.onlineAmount || 0);
-
-          const waText =
-            `*DRASHTI OPTIC - TAX INVOICE*\n\n` +
-            `Hello *${custName}*,\n\n` +
-            `Thank you for choosing Drashti Optic!\n` +
-            `📄 *Invoice No:* #${inv.invoiceNumber}\n` +
-            `💰 *Grand Total:* ₹${inv.grandTotal}\n` +
-            `💵 *Paid Amount:* ₹${paidAmt}\n` +
-            `📌 *Due Balance:* ₹${inv.dueAmount}\n\n` +
-            `🔗 *View / Download Official PDF Bill:*\n${pdfLink}\n\n` +
-            `_Thank you for visiting Drashti Optic!_`;
-
-          window.open(
-            `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waText)}`,
-            '_blank'
-          );
+          toast.success('Invoice PDF sent directly to customer WhatsApp!');
+        } else if (wa?.status === 'Not Configured') {
+          toast.info('Invoice saved. Configure WhatsApp Cloud API in Settings for direct PDF dispatch.');
+        } else if (wa?.status === 'Failed') {
+          toast.error(`WhatsApp notice: ${wa?.error || 'Could not send PDF'}`);
         }
 
         setIsPaymentModalOpen(false);
