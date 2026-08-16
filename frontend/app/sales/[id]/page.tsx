@@ -153,8 +153,21 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
             className="optic-btn-primary py-2 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
           >
             <Send className={`w-4 h-4 ${sendingWa ? 'animate-spin' : ''}`} />
-            <span>{invoice.whatsappStatus === 'Sent' ? 'Send Again (WhatsApp)' : 'Send WhatsApp PDF'}</span>
+            <span>{invoice.whatsappStatus === 'Sent' ? 'Resend (Cloud API)' : 'Send WhatsApp PDF'}</span>
           </button>
+
+          {cust.mobile && (
+            <a
+              href={`https://api.whatsapp.com/send?phone=${cust.mobile.replace(/\D/g, '').length === 10 ? '91' + cust.mobile.replace(/\D/g, '') : cust.mobile.replace(/\D/g, '')}&text=${encodeURIComponent(
+                `Hello ${cust.name || 'Customer'},\n\nThank you for choosing Drashti Optic! Your invoice #${invoice.invoiceNumber} for ₹${invoice.grandTotal} is ready.\n\nPaid: ₹${(Number(invoice.cashAmount || 0) + Number(invoice.onlineAmount || 0))} | Due: ₹${invoice.dueAmount}\n\nWe look forward to serving you again!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="optic-btn-secondary py-2 px-3 text-xs font-semibold text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+            >
+              <span>📱 Open WhatsApp</span>
+            </a>
+          )}
 
           <button
             type="button"
