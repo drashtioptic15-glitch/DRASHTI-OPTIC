@@ -39,7 +39,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
 
   const fetchInvoiceData = async () => {
     try {
-      const [invRes, setRes] = useState<any>([null, null]);
       const res1 = await api.get(`/sales/${invoiceId}`);
       const res2 = await api.get('/settings');
       if (res1.data.success) {
