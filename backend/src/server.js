@@ -21,6 +21,7 @@ import numberRoutes from './routes/numberRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
+import whatsappRoutes from './routes/whatsappRoutes.js';
 
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
@@ -104,6 +105,7 @@ app.use('/api/numbers', numberRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Fallback 404 handler
 app.use('*', (req, res) => {
