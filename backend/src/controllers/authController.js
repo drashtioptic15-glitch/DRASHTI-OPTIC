@@ -17,7 +17,7 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
   };
 
   res
@@ -81,9 +81,12 @@ export const login = async (req, res, next) => {
 // @desc    Logout Admin / Clear Cookie
 // @route   POST /api/auth/logout
 export const logout = async (req, res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 5 * 1000),
     httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   });
 
   res.status(200).json({
