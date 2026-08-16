@@ -166,7 +166,8 @@ class CustomerModel {
       const existing = await db.get(`SELECT * FROM customers WHERE _id = ? LIMIT 1`, [id]);
       if (!existing) return null;
 
-      const payload = updates.$set || updates;
+      const payload = updates.$set || (updates.$inc ? {} : updates);
+      const incPayload = updates.$inc || {};
       const now = new Date().toISOString();
       const setClauses = ['updatedAt = ?'];
       const params = [now];
@@ -181,9 +182,6 @@ class CustomerModel {
         'state',
         'pincode',
         'notes',
-        'totalPurchases',
-        'totalPaid',
-        'totalDue',
         'lastPurchaseDate',
       ];
 
@@ -191,6 +189,17 @@ class CustomerModel {
         if (payload[field] !== undefined) {
           setClauses.push(`${field} = ?`);
           params.push(payload[field]);
+        }
+      }
+
+      const numFields = ['totalPurchases', 'totalPaid', 'totalDue'];
+      for (const field of numFields) {
+        if (payload[field] !== undefined) {
+          setClauses.push(`${field} = ?`);
+          params.push(Number(payload[field]));
+        } else if (incPayload[field] !== undefined) {
+          setClauses.push(`${field} = ${field} + ?`);
+          params.push(Number(incPayload[field]));
         }
       }
 
@@ -202,11 +211,55 @@ class CustomerModel {
 
   async findByIdAndDelete(id) {
     const db = getDB();
-    const existing = await this.findById(id);
+    const existing = await db.get(`SELECT * FROM customers WHERE _id = ? LIMIT 1`, [id]);
     if (!existing) return null;
 
     await db.run(`DELETE FROM customers WHERE _id = ?`, [id]);
-    return existing;
+    return this._wrap(existing);
+  }
+
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.mobile) {
+      clauses.push('mobile = ?');
+      params.push(filter.mobile.trim());
+    }
+    if (filter.customerId) {
+      clauses.push('customerId = ?');
+      params.push(filter.customerId.trim());
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM customers ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM customers WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM customers ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM customers ${where}`, params);
+    return { deletedCount };
   }
 
   async countDocuments(filter = {}) {
@@ -231,6 +284,16 @@ class CustomerModel {
         '(name LIKE ? OR mobile LIKE ? OR alternateMobile LIKE ? OR customerId LIKE ? OR email LIKE ?)'
       );
       params.push(pattern, pattern, pattern, pattern, pattern);
+    }
+
+    if (filter.mobile && !searchTerm) {
+      clauses.push('mobile LIKE ?');
+      params.push(`%${filter.mobile.trim()}%`);
+    }
+
+    if (filter.customerId && !searchTerm) {
+      clauses.push('customerId LIKE ?');
+      params.push(`%${filter.customerId.trim()}%`);
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';

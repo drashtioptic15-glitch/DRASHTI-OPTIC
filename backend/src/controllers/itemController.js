@@ -157,7 +157,7 @@ export const createItem = async (req, res, next) => {
 
     const item = await Item.create({
       name: name.trim(),
-      category,
+      category: finalCategory,
       sku: finalSku,
       brand: brand ? brand.trim() : '',
       description: description ? description.trim() : '',

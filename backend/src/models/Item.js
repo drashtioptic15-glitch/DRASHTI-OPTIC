@@ -158,11 +158,12 @@ class ItemModel {
   findByIdAndUpdate(id, updates, options = {}) {
     const db = getDB();
     const self = this;
-    return new Query(async ({ populate }) => {
+    return new Query(async ({ populate } = {}) => {
       const existing = await db.get(`SELECT * FROM items WHERE _id = ? LIMIT 1`, [id]);
       if (!existing) return null;
 
-      const payload = updates.$set || updates;
+      const payload = updates.$set || (updates.$inc ? {} : updates);
+      const incPayload = updates.$inc || {};
       const now = new Date().toISOString();
       const setClauses = ['updatedAt = ?'];
       const params = [now];
@@ -202,6 +203,9 @@ class ItemModel {
       if (payload.stock !== undefined) {
         setClauses.push('stock = ?');
         params.push(Number(payload.stock));
+      } else if (incPayload.stock !== undefined) {
+        setClauses.push('stock = stock + ?');
+        params.push(Number(incPayload.stock));
       }
       if (payload.minimumStock !== undefined) {
         setClauses.push('minimumStock = ?');
@@ -227,18 +231,66 @@ class ItemModel {
     return this._wrap(existing);
   }
 
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.sku) {
+      clauses.push('sku = ?');
+      params.push(filter.sku);
+    }
+    if (filter.category) {
+      clauses.push('category = ?');
+      params.push(typeof filter.category === 'object' ? filter.category._id : filter.category);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM items ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM items WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.category) {
+      clauses.push('category = ?');
+      params.push(typeof filter.category === 'object' ? filter.category._id : filter.category);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM items ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM items ${where}`, params);
+    return { deletedCount };
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
     const clauses = [];
     const params = [];
 
-    if (filter.status) {
+    if (filter.status && filter.status !== 'all') {
       clauses.push('status = ?');
       params.push(filter.status);
     }
-    if (filter.category) {
+    if (filter.category && filter.category !== 'all') {
       clauses.push('category = ?');
-      params.push(filter.category);
+      params.push(typeof filter.category === 'object' ? filter.category._id : filter.category);
     }
     if (filter.stock && typeof filter.stock === 'object' && filter.stock.$lte !== undefined) {
       clauses.push('stock <= ?');

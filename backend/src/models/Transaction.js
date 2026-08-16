@@ -150,9 +150,150 @@ class TransactionModel {
     return this._wrap(txn);
   }
 
+  async findOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.transactionId) {
+      clauses.push('transactionId = ?');
+      params.push(filter.transactionId.trim());
+    }
+    if (filter.invoice) {
+      clauses.push('invoice = ?');
+      params.push(typeof filter.invoice === 'object' ? filter.invoice._id : filter.invoice);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM transactions ${where} LIMIT 1`, params);
+    if (!row) return null;
+    return this._wrap(row);
+  }
+
+  async findByIdAndDelete(id) {
+    const db = getDB();
+    const existing = await db.get(`SELECT * FROM transactions WHERE _id = ? LIMIT 1`, [id]);
+    if (!existing) return null;
+
+    await db.run(`DELETE FROM transactions WHERE _id = ?`, [id]);
+    return this._wrap(existing);
+  }
+
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.transactionId) {
+      clauses.push('transactionId = ?');
+      params.push(filter.transactionId);
+    }
+    if (filter.invoice) {
+      clauses.push('invoice = ?');
+      params.push(typeof filter.invoice === 'object' ? filter.invoice._id : filter.invoice);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM transactions ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM transactions WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.invoice) {
+      clauses.push('invoice = ?');
+      params.push(typeof filter.invoice === 'object' ? filter.invoice._id : filter.invoice);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+    if (filter.paymentType && filter.paymentType !== 'all') {
+      clauses.push('paymentType = ?');
+      params.push(filter.paymentType);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM transactions ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM transactions ${where}`, params);
+    return { deletedCount };
+  }
+
+  async findByIdAndUpdate(id, updates, options = {}) {
+    const db = getDB();
+    const existing = await db.get(`SELECT * FROM transactions WHERE _id = ? LIMIT 1`, [id]);
+    if (!existing) return null;
+
+    const now = new Date().toISOString();
+    const setClauses = ['updatedAt = ?'];
+    const params = [now];
+    const payload = updates.$set || updates;
+
+    const fields = ['paymentType', 'amount', 'referenceNumber', 'status', 'notes'];
+    for (const field of fields) {
+      if (payload[field] !== undefined) {
+        setClauses.push(`${field} = ?`);
+        params.push(field === 'amount' ? Number(payload[field]) : payload[field]);
+      }
+    }
+
+    params.push(id);
+    await db.run(`UPDATE transactions SET ${setClauses.join(', ')} WHERE _id = ?`, params);
+    return await this.findById(id);
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
-    const row = await db.get(`SELECT COUNT(*) as count FROM transactions`);
+    const clauses = [];
+    const params = [];
+
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+    if (filter.invoice) {
+      clauses.push('invoice = ?');
+      params.push(typeof filter.invoice === 'object' ? filter.invoice._id : filter.invoice);
+    }
+    if (filter.paymentType && filter.paymentType !== 'all') {
+      clauses.push('paymentType = ?');
+      params.push(filter.paymentType);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT COUNT(*) as count FROM transactions ${where}`, params);
     return row ? row.count : 0;
   }
 

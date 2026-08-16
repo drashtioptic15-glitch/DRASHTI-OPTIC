@@ -34,9 +34,17 @@ class InvoiceModel {
       clauses.push('customer = ?');
       params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
     }
-    if (filter.paymentStatus) {
+    if (filter.paymentStatus && filter.paymentStatus !== 'all') {
       clauses.push('paymentStatus = ?');
       params.push(filter.paymentStatus);
+    }
+    if (filter.paymentMethod && filter.paymentMethod !== 'all') {
+      clauses.push('paymentMethod = ?');
+      params.push(filter.paymentMethod);
+    }
+    if (filter.whatsappStatus && filter.whatsappStatus !== 'all') {
+      clauses.push('whatsappStatus = ?');
+      params.push(filter.whatsappStatus);
     }
     if (filter.search || filter.$or) {
       const term = filter.search || (filter.$or ? (filter.$or[0]?.invoiceNumber?.$regex || '') : '');
@@ -126,6 +134,10 @@ class InvoiceModel {
     if (filter._id) {
       clauses.push('_id = ?');
       params.push(filter._id);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
@@ -231,6 +243,8 @@ class InvoiceModel {
     const existing = await db.get(`SELECT * FROM invoices WHERE _id = ? LIMIT 1`, [id]);
     if (!existing) return null;
 
+    const payload = updates.$set || (updates.$inc ? {} : updates);
+    const incPayload = updates.$inc || {};
     const now = new Date().toISOString();
     const setClauses = ['updatedAt = ?'];
     const params = [now];
@@ -265,8 +279,8 @@ class InvoiceModel {
     ];
 
     for (const field of fields) {
-      if (updates[field] !== undefined) {
-        let val = updates[field];
+      if (payload[field] !== undefined) {
+        let val = payload[field];
         if (field === 'items' && typeof val === 'object') val = JSON.stringify(val);
         if ((field === 'customerSnapshot' || field === 'prescriptionSnapshot') && typeof val === 'object') {
           val = JSON.stringify(val);
@@ -274,6 +288,9 @@ class InvoiceModel {
         if (field === 'includePrescription') val = val ? 1 : 0;
         setClauses.push(`${field} = ?`);
         params.push(val);
+      } else if (incPayload[field] !== undefined) {
+        setClauses.push(`${field} = ${field} + ?`);
+        params.push(Number(incPayload[field]));
       }
     }
 
@@ -291,14 +308,82 @@ class InvoiceModel {
     return this._wrap(existing);
   }
 
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.invoiceNumber) {
+      clauses.push('invoiceNumber = ?');
+      params.push(filter.invoiceNumber);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM invoices ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM invoices WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+    if (filter.paymentStatus && filter.paymentStatus !== 'all') {
+      clauses.push('paymentStatus = ?');
+      params.push(filter.paymentStatus);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM invoices ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM invoices ${where}`, params);
+    return { deletedCount };
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
     const clauses = [];
     const params = [];
 
-    if (filter.paymentStatus) {
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+    if (filter.paymentStatus && filter.paymentStatus !== 'all') {
       clauses.push('paymentStatus = ?');
       params.push(filter.paymentStatus);
+    }
+    if (filter.paymentMethod && filter.paymentMethod !== 'all') {
+      clauses.push('paymentMethod = ?');
+      params.push(filter.paymentMethod);
+    }
+    if (filter.whatsappStatus && filter.whatsappStatus !== 'all') {
+      clauses.push('whatsappStatus = ?');
+      params.push(filter.whatsappStatus);
+    }
+    if (filter.search || filter.$or) {
+      const term = filter.search || (filter.$or ? (filter.$or[0]?.invoiceNumber?.$regex || '') : '');
+      if (term) {
+        clauses.push('(invoiceNumber LIKE ? OR customerSnapshot LIKE ?)');
+        const searchPattern = `%${term.replace(/^\^|\$$/g, '').trim()}%`;
+        params.push(searchPattern, searchPattern);
+      }
     }
     if (filter.startDate || filter.invoiceDate?.$gte) {
       clauses.push('invoiceDate >= ?');

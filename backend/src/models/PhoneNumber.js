@@ -148,9 +148,74 @@ class PhoneNumberModel {
     return this._wrap(existing);
   }
 
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.number) {
+      clauses.push('number = ?');
+      params.push(filter.number.trim());
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM phone_numbers ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM phone_numbers WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.type && filter.type !== 'all') {
+      clauses.push('type = ?');
+      params.push(filter.type);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM phone_numbers ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM phone_numbers ${where}`, params);
+    return { deletedCount };
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
-    const row = await db.get(`SELECT COUNT(*) as count FROM phone_numbers`);
+    const clauses = [];
+    const params = [];
+
+    if (filter.type && filter.type !== 'all') {
+      clauses.push('type = ?');
+      params.push(filter.type);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+    if (filter.search || filter.$or) {
+      const term = filter.search || (filter.$or ? (filter.$or[0]?.number?.$regex || filter.$or[0]?.label?.$regex || '') : '');
+      if (term) {
+        clauses.push('(number LIKE ? OR label LIKE ?)');
+        const searchPattern = `%${term.replace(/^\^|\$$/g, '').trim()}%`;
+        params.push(searchPattern, searchPattern);
+      }
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT COUNT(*) as count FROM phone_numbers ${where}`, params);
     return row ? row.count : 0;
   }
 

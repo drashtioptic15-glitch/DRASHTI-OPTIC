@@ -330,7 +330,8 @@ function SalesContent() {
               <tbody className="divide-y divide-slate-100">
                 {invoices.map((inv) => {
                   const paid = (inv.cashAmount || 0) + (inv.onlineAmount || 0);
-                  const cust = inv.customerSnapshot || (typeof inv.customer === 'object' ? inv.customer : { name: 'Walk-in', mobile: '-' });
+                  const custName = inv.customerSnapshot?.name || (typeof inv.customer === 'object' && inv.customer ? inv.customer.name : '') || 'Walk-in Customer';
+                  const custMobile = inv.customerSnapshot?.mobile || (typeof inv.customer === 'object' && inv.customer ? inv.customer.mobile : '') || '-';
 
                   return (
                     <tr key={inv._id} className="hover:bg-slate-50/80 transition-colors">
@@ -340,8 +341,8 @@ function SalesContent() {
                         </Link>
                       </td>
                       <td className="py-3 px-3">
-                        <p className="font-bold text-slate-800 leading-tight">{cust.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">📱 {cust.mobile}</p>
+                        <p className="font-bold text-slate-800 leading-tight">{custName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">📱 {custMobile}</p>
                       </td>
                       <td className="py-3 px-2 text-center text-slate-500 whitespace-nowrap text-[11px]">
                         {formatDate(inv.invoiceDate || inv.createdAt)}

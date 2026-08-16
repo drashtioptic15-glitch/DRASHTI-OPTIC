@@ -109,7 +109,18 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const cust = invoice.customerSnapshot || (typeof invoice.customer === 'object' ? invoice.customer : { name: 'Customer', mobile: '' });
+  const custName = invoice.customerSnapshot?.name || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.name : '') || 'Customer';
+  const custMobile = invoice.customerSnapshot?.mobile || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.mobile : '') || '';
+  const cust = {
+    name: custName,
+    mobile: custMobile,
+    alternateMobile: invoice.customerSnapshot?.alternateMobile || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.alternateMobile : '') || '',
+    email: invoice.customerSnapshot?.email || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.email : '') || '',
+    address: invoice.customerSnapshot?.address || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.address : '') || '',
+    city: invoice.customerSnapshot?.city || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.city : '') || '',
+    state: invoice.customerSnapshot?.state || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.state : '') || '',
+    pincode: invoice.customerSnapshot?.pincode || (typeof invoice.customer === 'object' && invoice.customer ? invoice.customer.pincode : '') || '',
+  };
   const p = invoice.prescriptionSnapshot || (typeof invoice.prescription === 'object' ? invoice.prescription : null);
   const hasPrescription = invoice.includePrescription !== false && p && (p.rightEye?.sph || p.rightEye?.cyl || p.leftEye?.sph || p.leftEye?.cyl || p.rightEye?.vn || p.leftEye?.vn || p.doctor);
 

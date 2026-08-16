@@ -138,12 +138,52 @@ class CategoryModel {
     return this._wrap(existing);
   }
 
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.name) {
+      clauses.push('LOWER(name) = LOWER(?)');
+      params.push(filter.name.trim());
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM categories ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM categories WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM categories ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM categories ${where}`, params);
+    return { deletedCount };
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
     const clauses = [];
     const params = [];
 
-    if (filter.status) {
+    if (filter.status && filter.status !== 'all') {
       clauses.push('status = ?');
       params.push(filter.status);
     }

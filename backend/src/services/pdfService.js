@@ -211,8 +211,20 @@ export const generateInvoicePDF = async (invoice, settings) => {
       currentY = headerStartY + 84;
 
       // ================= 2. METADATA & POWER DETAIL MATRIX =================
-      const cust = invoice.customerSnapshot || invoice.customer || {};
-      const p = invoice.prescriptionSnapshot || invoice.prescription || {};
+      let cust = invoice.customerSnapshot;
+      if (typeof cust === 'string') {
+        try { cust = JSON.parse(cust); } catch { cust = {}; }
+      }
+      if (!cust || !cust.name) {
+        cust = (typeof invoice.customer === 'object' && invoice.customer) ? invoice.customer : { name: cust?.name || 'Walk-in Customer', mobile: cust?.mobile || '-' };
+      }
+      let p = invoice.prescriptionSnapshot;
+      if (typeof p === 'string') {
+        try { p = JSON.parse(p); } catch { p = {}; }
+      }
+      if (!p || (!p.rightEye && !p.leftEye && !p.doctor)) {
+        p = (typeof invoice.prescription === 'object' && invoice.prescription) ? invoice.prescription : {};
+      }
       const shouldIncludePrescription = invoice.includePrescription !== false &&
         (p.rightEye?.sph || p.rightEye?.cyl || p.leftEye?.sph || p.leftEye?.cyl || p.rightEye?.vn || p.leftEye?.vn || p.doctor);
 

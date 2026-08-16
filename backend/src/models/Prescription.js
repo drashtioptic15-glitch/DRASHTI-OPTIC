@@ -177,9 +177,73 @@ class PrescriptionModel {
     return this._wrap(existing);
   }
 
+  async deleteOne(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter._id) {
+      clauses.push('_id = ?');
+      params.push(filter._id);
+    }
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT * FROM prescriptions ${where} LIMIT 1`, params);
+    if (!row) return { deletedCount: 0 };
+
+    await db.run(`DELETE FROM prescriptions WHERE _id = ?`, [row._id]);
+    return { deletedCount: 1 };
+  }
+
+  async deleteMany(filter = {}) {
+    const db = getDB();
+    const clauses = [];
+    const params = [];
+
+    if (filter.customer) {
+      clauses.push('customer = ?');
+      params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+    }
+    if (filter.doctor) {
+      clauses.push('LOWER(doctor) = LOWER(?)');
+      params.push(filter.doctor);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const countRow = await db.get(`SELECT COUNT(*) as count FROM prescriptions ${where}`, params);
+    const deletedCount = countRow ? countRow.count : 0;
+
+    await db.run(`DELETE FROM prescriptions ${where}`, params);
+    return { deletedCount };
+  }
+
   async countDocuments(filter = {}) {
     const db = getDB();
-    const row = await db.get(`SELECT COUNT(*) as count FROM prescriptions`);
+    const clauses = [];
+    const params = [];
+
+    if (filter.customer) {
+      if (typeof filter.customer === 'object' && filter.customer.$in) {
+        if (filter.customer.$in.length === 0) return 0;
+        const placeholders = filter.customer.$in.map(() => '?').join(',');
+        clauses.push(`customer IN (${placeholders})`);
+        params.push(...filter.customer.$in);
+      } else {
+        clauses.push('customer = ?');
+        params.push(typeof filter.customer === 'object' ? filter.customer._id : filter.customer);
+      }
+    }
+    if (filter.doctor) {
+      clauses.push('doctor LIKE ?');
+      params.push(`%${filter.doctor.trim()}%`);
+    }
+
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    const row = await db.get(`SELECT COUNT(*) as count FROM prescriptions ${where}`, params);
     return row ? row.count : 0;
   }
 
