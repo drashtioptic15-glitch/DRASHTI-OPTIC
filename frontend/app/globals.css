@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #e11d2a;
+    --brand-dark: #111827;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-rose-100 selection:text-rose-900;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    min-height: 100vh;
+  }
+}
+
+/* Custom modern thin scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ensure SVG charts and data visualizations allow natural vertical touch swipe scrolling */
+.recharts-responsive-container,
+.recharts-wrapper,
+.recharts-surface,
+svg {
+  touch-action: pan-y !important;
+}
+
+/* Remove default number input spinner buttons to prevent overlapping on mobile/tablets */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Responsive table horizontal scrolling wrapper with smooth momentum */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Glass & Card styles */
+.optic-card {
+  @apply bg-white rounded-2xl border border-slate-200/80 shadow-sm transition-all duration-200;
+}
+
+.optic-card:hover {
+  @apply shadow-md border-slate-300;
+}
+
+.optic-input {
+  @apply w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-brand-600 transition-all text-xs;
+}
+
+select,
+.optic-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  @apply w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-brand-600 transition-all text-xs cursor-pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.5rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25em 1.25em !important;
+  padding-right: 2rem !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.optic-power-input {
+  width: 100%;
+  padding: 4px 2px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px !important;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.optic-power-input:focus {
+  border-color: #e11d2a;
+  box-shadow: 0 0 0 2px rgba(225, 29, 42, 0.15);
+}
+
+.optic-btn-primary {
+  @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-semibold rounded-xl shadow-sm shadow-brand-600/20 transition-all duration-150 text-xs disabled:opacity-50 disabled:pointer-events-none min-h-[36px];
+}
+
+.optic-btn-secondary {
+  @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-xl shadow-sm transition-all text-xs disabled:opacity-50 disabled:pointer-events-none min-h-[36px];
+}
+
+.optic-btn-danger {
+  @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold rounded-xl transition-all text-xs min-h-[36px];
+}
+
+/* Prevent auto-zoom on mobile safari/chrome while preserving compact pos power inputs */
+@media screen and (max-width: 768px) {
+
+  input:not(.optic-power-input):not(.optic-input):not(.optic-table-input),
+  select:not(.optic-select),
+  textarea {
+    font-size: 16px !important;
+  }
+}
