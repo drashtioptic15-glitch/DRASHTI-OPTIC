@@ -420,7 +420,7 @@ export const createSale = async (req, res, next) => {
     const invoiceNumber = await Invoice.generateInvoiceNumber();
 
     // 6. Create Invoice Record
-    const newInvoice = new Invoice({
+    const newInvoice = await Invoice.create({
       invoiceNumber,
       customer: customerDoc._id,
       customerSnapshot: {
@@ -460,8 +460,6 @@ export const createSale = async (req, res, next) => {
       notes,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
     });
-
-    await newInvoice.save();
 
     // 7. Update Customer Financial Summary
     customerDoc.totalPurchases += grandTotal;

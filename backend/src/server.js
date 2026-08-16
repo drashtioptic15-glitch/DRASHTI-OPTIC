@@ -22,13 +22,34 @@ import reportRoutes from './routes/reportRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
 
+import bcrypt from 'bcryptjs';
+import User from './models/User.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-// Connect to MongoDB
-connectDB();
+// Connect to SQLite Database
+await connectDB();
+
+// Ensure default admin exists
+try {
+  const existingAdmin = await User.findOne({});
+  if (!existingAdmin) {
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Admin@123456', salt);
+    await User.create({
+      name: process.env.ADMIN_NAME || 'Drashti Optic Owner',
+      email: (process.env.ADMIN_EMAIL || 'admin@drashtioptic.com').toLowerCase().trim(),
+      passwordHash,
+      isActive: true,
+    });
+    console.log('[SQLite] Default admin user initialized.');
+  }
+} catch (err) {
+  console.error('[SQLite] Admin init notice:', err.message);
+}
 
 const app = express();
 

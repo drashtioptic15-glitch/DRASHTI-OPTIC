@@ -1,74 +1,69 @@
 import Transaction from '../models/Transaction.js';
 import { getDateRange } from './salesController.js';
+import { getDB } from '../config/database.js';
 
 // @desc    Get all transactions with filters and summary
 // @route   GET /api/transactions
 export const getTransactions = async (req, res, next) => {
   try {
+    const db = getDB();
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const skip = (page - 1) * limit;
 
     const { search, filter, startDate, endDate, paymentType, status } = req.query;
 
-    let query = {};
+    const clauses = [];
+    const params = [];
 
     if (filter) {
       const { start, end } = getDateRange(filter, startDate, endDate);
       if (start && end) {
-        query.createdAt = { $gte: start, $lte: end };
+        clauses.push('createdAt >= ? AND createdAt <= ?');
+        params.push(new Date(start).toISOString(), new Date(end).toISOString());
       }
     }
 
     if (paymentType && paymentType !== 'all') {
-      query.paymentType = paymentType;
+      clauses.push('paymentType = ?');
+      params.push(paymentType);
     }
 
     if (status && status !== 'all') {
-      query.status = status;
+      clauses.push('status = ?');
+      params.push(status);
     }
 
     if (search) {
-      query.$or = [
-        { transactionId: { $regex: search, $options: 'i' } },
-        { referenceNumber: { $regex: search, $options: 'i' } },
-        { notes: { $regex: search, $options: 'i' } },
-      ];
+      clauses.push('(transactionId LIKE ? OR referenceNumber LIKE ? OR notes LIKE ?)');
+      const term = `%${search.trim()}%`;
+      params.push(term, term, term);
     }
 
-    // Summary calculation
-    const summaryAgg = await Transaction.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: '$amount' },
-          cashAmount: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentType', 'Cash'] }, '$amount', 0],
-            },
-          },
-          onlineAmount: {
-            $sum: {
-              $cond: [{ $ne: ['$paymentType', 'Cash'] }, '$amount', 0],
-            },
-          },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
 
-    const summary = summaryAgg[0] || {
-      totalAmount: 0,
-      cashAmount: 0,
-      onlineAmount: 0,
-      count: 0,
+    // Summary calculation
+    const summaryRow = await db.get(
+      `SELECT SUM(amount) as totalAmount, 
+              SUM(CASE WHEN paymentType = 'Cash' THEN amount ELSE 0 END) as cashAmount,
+              SUM(CASE WHEN paymentType != 'Cash' THEN amount ELSE 0 END) as onlineAmount,
+              COUNT(*) as count
+       FROM transactions ${where}`,
+      params
+    );
+
+    const summary = {
+      totalAmount: Number(summaryRow?.totalAmount || 0),
+      cashAmount: Number(summaryRow?.cashAmount || 0),
+      onlineAmount: Number(summaryRow?.onlineAmount || 0),
+      count: Number(summaryRow?.count || 0),
     };
 
-    const total = await Transaction.countDocuments(query);
-    const transactions = await Transaction.find(query)
-      .populate('customer', 'customerId name mobile')
-      .populate('invoice', 'invoiceNumber grandTotal paymentStatus')
+    const countRow = await db.get(`SELECT COUNT(*) as total FROM transactions ${where}`, params);
+    const total = countRow ? countRow.total : 0;
+
+    const transactions = await Transaction.find(req.query)
+      .populate('customer invoice')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

@@ -136,9 +136,9 @@ async function runEndToEndVerification() {
       overallDiscountType: 'fixed',
       overallDiscountValue: 100,
       taxRate: 0,
-      cashAmount: 3000,
-      onlineAmount: 2020,
-      paymentMethod: 'Split',
+      cashAmount: 1000,
+      onlineAmount: 0,
+      paymentMethod: 'Cash',
       notes: 'Counter sale with full advance payment and prescription fit',
     };
 

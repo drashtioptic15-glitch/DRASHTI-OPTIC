@@ -1,9 +1,9 @@
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import connectDB, { getDB } from '../config/database.js';
 import User from '../models/User.js';
 import Customer from '../models/Customer.js';
 import Category from '../models/Category.js';
@@ -21,23 +21,23 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const seedDatabase = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/drashti_optic';
-    await mongoose.connect(mongoUri);
-    console.log('[MongoDB] Connected to database for seeding...');
+    await connectDB();
+    const db = getDB();
+    console.log('[SQLite] Connected to database for seeding...');
 
-    // Clear existing collections
-    await Promise.all([
-      User.deleteMany({}),
-      Customer.deleteMany({}),
-      Category.deleteMany({}),
-      Item.deleteMany({}),
-      Prescription.deleteMany({}),
-      Invoice.deleteMany({}),
-      Transaction.deleteMany({}),
-      PhoneNumber.deleteMany({}),
-      StoreSettings.deleteMany({}),
-    ]);
-    console.log('🧹 Cleaned existing database collections.');
+    // Clear existing tables
+    await db.exec(`
+      DELETE FROM users;
+      DELETE FROM customers;
+      DELETE FROM categories;
+      DELETE FROM items;
+      DELETE FROM prescriptions;
+      DELETE FROM invoices;
+      DELETE FROM transactions;
+      DELETE FROM phone_numbers;
+      DELETE FROM store_settings;
+    `);
+    console.log('🧹 Cleaned existing database tables.');
 
     // 1. Create Admin
     const salt = await bcrypt.genSalt(10);
@@ -51,25 +51,29 @@ const seedDatabase = async () => {
     console.log('✅ Admin user created');
 
     // 2. Store Settings
-    const settings = await StoreSettings.create({
-      storeName: 'Drashti Optic',
-      tagline: 'EYEGLASSES | CONTACT LENSES | SUNGLASSES',
-      address: 'Shop No. 4, Crystal Plaza, Station Road',
-      city: 'Ahmedabad',
-      state: 'Gujarat',
-      pincode: '380001',
-      phone: '+91 98765 43210',
-      email: 'contact@drashtioptic.com',
-      website: 'www.drashtioptic.com',
-      gstNumber: '24AAAAA0000A1Z5',
-      invoicePrefix: 'INV',
-      invoiceFooter: 'Thank you for choosing Drashti Optic! Goods once sold will be serviced with care. Please carry this invoice for warranty and complimentary adjustments.',
-      whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-      whatsappBusinessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || '',
-      whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
-      currencySymbol: '₹',
-      taxRate: 0,
-    });
+    const settings = await StoreSettings.findOneAndUpdate(
+      {},
+      {
+        storeName: 'Drashti Optic',
+        tagline: 'EYEGLASSES | CONTACT LENSES | SUNGLASSES',
+        address: 'Shop No. 4, Crystal Plaza, Station Road',
+        city: 'Ahmedabad',
+        state: 'Gujarat',
+        pincode: '380001',
+        phone: '+91 98765 43210',
+        email: 'contact@drashtioptic.com',
+        website: 'www.drashtioptic.com',
+        gstNumber: '24AAAAA0000A1Z5',
+        invoicePrefix: 'INV',
+        invoiceFooter:
+          'Thank you for choosing Drashti Optic! Goods once sold will be serviced with care. Please carry this invoice for warranty and complimentary adjustments.',
+        whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+        whatsappBusinessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || '',
+        whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
+        currencySymbol: '₹',
+        taxRate: 0,
+      }
+    );
     console.log('✅ Store Settings created');
 
     // 3. Categories
@@ -81,53 +85,50 @@ const seedDatabase = async () => {
       { name: 'Accessories & Solutions', description: 'Lens cleaning sprays, anti-fog cloths, luxury cases, chains and eye drops' },
     ];
 
-    const categories = await Category.insertMany(categoriesData);
+    const categories = [];
     const catMap = {};
-    categories.forEach((c) => {
-      catMap[c.name] = c._id;
-    });
+    for (const cData of categoriesData) {
+      const cat = await Category.create(cData);
+      categories.push(cat);
+      catMap[cat.name] = cat._id;
+    }
     console.log(`✅ ${categories.length} Categories created`);
 
     // 4. Products / Items
     const itemsData = [
-      // Frames
       { name: 'Titanium Rimless Matte Black', category: catMap['Frames'], sku: 'SKU-00101', brand: 'Titan Eye+', purchasePrice: 1600, sellingPrice: 2800, stock: 18, minimumStock: 4 },
       { name: 'Classic Acetate Square Tortoise', category: catMap['Frames'], sku: 'SKU-00102', brand: 'Ray-Ban', purchasePrice: 2800, sellingPrice: 4800, stock: 12, minimumStock: 3 },
       { name: 'Cat-Eye Gloss Rose Gold', category: catMap['Frames'], sku: 'SKU-00103', brand: 'Vogue', purchasePrice: 2200, sellingPrice: 3900, stock: 8, minimumStock: 3 },
       { name: 'Lightweight TR90 Blue Flex', category: catMap['Frames'], sku: 'SKU-00104', brand: 'Fastrack', purchasePrice: 850, sellingPrice: 1650, stock: 25, minimumStock: 5 },
       { name: 'Drashti Signature Vintage Aviator Frame', category: catMap['Frames'], sku: 'SKU-00105', brand: 'Drashti', purchasePrice: 1200, sellingPrice: 2400, stock: 15, minimumStock: 4 },
-      { name: 'Semi-Rimless Clubmaster Gunmetal', category: catMap['Frames'], sku: 'SKU-00106', brand: 'Ray-Ban', purchasePrice: 3100, sellingPrice: 5200, stock: 3, minimumStock: 5 }, // Low stock
-
-      // Lenses
+      { name: 'Semi-Rimless Clubmaster Gunmetal', category: catMap['Frames'], sku: 'SKU-00106', brand: 'Ray-Ban', purchasePrice: 3100, sellingPrice: 5200, stock: 3, minimumStock: 5 },
       { name: 'Blue Cut Digital Anti-Glare 1.56', category: catMap['Lenses'], sku: 'SKU-00201', brand: 'Crizal Easy', purchasePrice: 700, sellingPrice: 1400, stock: 40, minimumStock: 8 },
       { name: 'Advanced Blue Block UV420 1.61 Hi-Index', category: catMap['Lenses'], sku: 'SKU-00202', brand: 'Essilor Eyezen', purchasePrice: 1400, sellingPrice: 2800, stock: 22, minimumStock: 5 },
       { name: 'Progressive Digital Freeform Varilux', category: catMap['Lenses'], sku: 'SKU-00203', brand: 'Essilor Varilux', purchasePrice: 2900, sellingPrice: 5800, stock: 14, minimumStock: 3 },
       { name: 'Photochromic Transitions Grey 1.56', category: catMap['Lenses'], sku: 'SKU-00204', brand: 'Transitions Gen 8', purchasePrice: 1800, sellingPrice: 3600, stock: 16, minimumStock: 4 },
-      { name: 'Ultra Thin Single Vision 1.67 Aspheric', category: catMap['Lenses'], sku: 'SKU-00205', brand: 'Hoya', purchasePrice: 2200, sellingPrice: 4200, stock: 2, minimumStock: 4 }, // Low stock
-
-      // Sunglasses
+      { name: 'Ultra Thin Single Vision 1.67 Aspheric', category: catMap['Lenses'], sku: 'SKU-00205', brand: 'Hoya', purchasePrice: 2200, sellingPrice: 4200, stock: 2, minimumStock: 4 },
       { name: 'Aviator Classic Polarized Green Lens', category: catMap['Sunglasses'], sku: 'SKU-00301', brand: 'Ray-Ban', purchasePrice: 3800, sellingPrice: 6500, stock: 7, minimumStock: 2 },
       { name: 'Wayfarer Matte Black Dark Grey Polarized', category: catMap['Sunglasses'], sku: 'SKU-00302', brand: 'Ray-Ban', purchasePrice: 3600, sellingPrice: 6200, stock: 9, minimumStock: 3 },
       { name: 'Hexagonal Flat Lenses Gold/Green', category: catMap['Sunglasses'], sku: 'SKU-00303', brand: 'Vogue', purchasePrice: 2600, sellingPrice: 4400, stock: 5, minimumStock: 2 },
-      { name: 'Sport Wrap Shield Polarized Red Mirror', category: catMap['Sunglasses'], sku: 'SKU-00304', brand: 'Oakley', purchasePrice: 4500, sellingPrice: 7900, stock: 0, minimumStock: 2 }, // Out of stock
-
-      // Contact Lenses
+      { name: 'Sport Wrap Shield Polarized Red Mirror', category: catMap['Sunglasses'], sku: 'SKU-00304', brand: 'Oakley', purchasePrice: 4500, sellingPrice: 7900, stock: 0, minimumStock: 2 },
       { name: 'Acuvue Oasys with Hydraclear Plus (6 Pack)', category: catMap['Contact Lenses'], sku: 'SKU-00401', brand: 'Johnson & Johnson', purchasePrice: 1250, sellingPrice: 1950, stock: 30, minimumStock: 6 },
       { name: 'Bausch & Lomb SofLens 59 (6 Pack)', category: catMap['Contact Lenses'], sku: 'SKU-00402', brand: 'Bausch & Lomb', purchasePrice: 750, sellingPrice: 1200, stock: 20, minimumStock: 5 },
       { name: 'Air Optix Plus HydraGlyde Monthly (3 Pack)', category: catMap['Contact Lenses'], sku: 'SKU-00403', brand: 'Alcon', purchasePrice: 950, sellingPrice: 1550, stock: 15, minimumStock: 4 },
       { name: 'FreshLook ColorBlends Monthly (Pure Hazel)', category: catMap['Contact Lenses'], sku: 'SKU-00404', brand: 'Alcon', purchasePrice: 650, sellingPrice: 1100, stock: 12, minimumStock: 3 },
-
-      // Accessories
       { name: 'Opti-Clean Premium Lens Spray (100ml)', category: catMap['Accessories & Solutions'], sku: 'SKU-00501', brand: 'Drashti', purchasePrice: 70, sellingPrice: 150, stock: 85, minimumStock: 15 },
       { name: 'Biotrue Multi-Purpose Solution (300ml)', category: catMap['Accessories & Solutions'], sku: 'SKU-00502', brand: 'Bausch & Lomb', purchasePrice: 320, sellingPrice: 480, stock: 35, minimumStock: 8 },
       { name: 'Anti-Fog Microfiber Reusable Cloth Kit', category: catMap['Accessories & Solutions'], sku: 'SKU-00503', brand: 'Drashti', purchasePrice: 90, sellingPrice: 200, stock: 50, minimumStock: 10 },
       { name: 'Leatherette Magnetic Hard Eyewear Case', category: catMap['Accessories & Solutions'], sku: 'SKU-00504', brand: 'Drashti', purchasePrice: 120, sellingPrice: 300, stock: 40, minimumStock: 10 },
     ];
 
-    const items = await Item.insertMany(itemsData);
+    const items = [];
+    for (const iData of itemsData) {
+      const itm = await Item.create(iData);
+      items.push(itm);
+    }
     console.log(`✅ ${items.length} Products/Items created`);
 
-    // 5. Customers & Prescriptions
+    // 5. Customers
     const customersData = [
       {
         customerId: 'CUST-1001',
@@ -187,7 +188,11 @@ const seedDatabase = async () => {
       },
     ];
 
-    const customers = await Customer.insertMany(customersData);
+    const customers = [];
+    for (const cData of customersData) {
+      const cust = await Customer.create(cData);
+      customers.push(cust);
+    }
     console.log(`✅ ${customers.length} Customers created`);
 
     // Prescriptions for customers
@@ -226,7 +231,11 @@ const seedDatabase = async () => {
       },
     ];
 
-    const prescriptions = await Prescription.insertMany(prescriptionsData);
+    const prescriptions = [];
+    for (const pData of prescriptionsData) {
+      const p = await Prescription.create(pData);
+      prescriptions.push(p);
+    }
     console.log(`✅ ${prescriptions.length} Prescriptions recorded`);
 
     // 6. Invoices & Transactions
@@ -482,7 +491,6 @@ const seedDatabase = async () => {
     const savedInvoices = [];
     for (const invData of invoicesData) {
       const inv = await Invoice.create(invData);
-      // Generate PDF on disk for seeded invoice
       try {
         const pdfRes = await generateInvoicePDF(inv, settings);
         inv.pdfPath = pdfRes.filePath;
@@ -551,7 +559,9 @@ const seedDatabase = async () => {
       },
     ];
 
-    await Transaction.insertMany(txnsData);
+    for (const tData of txnsData) {
+      await Transaction.create(tData);
+    }
     console.log(`✅ ${txnsData.length} Financial Transactions created`);
 
     // Update Customer Lifetime Financials
@@ -595,10 +605,12 @@ const seedDatabase = async () => {
       { number: '9727788990', label: 'Alcon Contact Lens Rep', type: 'Supplier', status: 'active', notes: 'Contact lenses inventory' },
     ];
 
-    await PhoneNumber.insertMany(numbersData);
+    for (const nData of numbersData) {
+      await PhoneNumber.create(nData);
+    }
     console.log(`✅ ${numbersData.length} Phone Directory contacts created`);
 
-    console.log('\n🎉 [SUCCESS] Drashti Optic Database successfully populated with realistic optical data!\n');
+    console.log('\n🎉 [SUCCESS] Drashti Optic SQLite Database successfully populated with optical data!\n');
     process.exit(0);
   } catch (error) {
     console.error('❌ [Seed Error]', error);

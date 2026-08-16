@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import connectDB from '../config/database.js';
 import User from '../models/User.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,9 +11,8 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const createAdmin = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/drashti_optic';
-    await mongoose.connect(mongoUri);
-    console.log('[MongoDB] Connected to database');
+    await connectDB();
+    console.log('[SQLite] Connected to database');
 
     const adminName = process.env.ADMIN_NAME || 'Drashti Optic Owner';
     const adminEmail = (process.env.ADMIN_EMAIL || 'admin@drashtioptic.com').toLowerCase().trim();
