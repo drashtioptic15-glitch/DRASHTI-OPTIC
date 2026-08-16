@@ -38,9 +38,13 @@ class TransactionModel {
       clauses.push('invoice = ?');
       params.push(typeof filter.invoice === 'object' ? filter.invoice._id : filter.invoice);
     }
-    if (filter.paymentType) {
+    if (filter.paymentType && filter.paymentType !== 'all') {
       clauses.push('paymentType = ?');
       params.push(filter.paymentType);
+    }
+    if (filter.status && filter.status !== 'all') {
+      clauses.push('status = ?');
+      params.push(filter.status);
     }
 
     const self = this;

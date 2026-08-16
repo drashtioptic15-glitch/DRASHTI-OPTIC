@@ -186,17 +186,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-brand-600/30 shrink-0">
-              {customer.name.charAt(0).toUpperCase()}
+              {(customer.name || 'C').charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900">{customer.name}</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">{customer.name || 'Customer Profile'}</h2>
                 <Badge variant="brand" size="sm">
-                  {customer.customerId}
+                  {customer.customerId || 'CUST'}
                 </Badge>
               </div>
               <p className="text-xs text-slate-600 font-mono mt-1 flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-brand-600" /> {customer.mobile}
+                <Phone className="w-3.5 h-3.5 text-brand-600" /> {customer.mobile || '-'}
                 {customer.alternateMobile && <span className="text-slate-400"> (Alt: {customer.alternateMobile})</span>}
               </p>
               {customer.email && (

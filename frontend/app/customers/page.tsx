@@ -245,9 +245,9 @@ export default function CustomersPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <Link href={`/customers/${cust._id}`} className="font-bold text-slate-900 hover:text-brand-600">
-                        {cust.name}
+                        {cust.name || 'Unnamed Customer'}
                       </Link>
-                      <p className="text-[10px] text-slate-500 font-mono">📱 {cust.mobile}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">📱 {cust.mobile || '-'}</p>
                     </td>
                     <td className="py-3.5 px-3 text-slate-600">
                       {cust.city ? `${cust.city}${cust.state ? `, ${cust.state}` : ''}` : '-'}

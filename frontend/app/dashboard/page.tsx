@@ -227,15 +227,19 @@ export default function DashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {recentSales.length > 0 ? (
-                    recentSales.map((inv: any) => (
-                      <tr key={inv._id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900">
-                          {inv.invoiceNumber}
-                        </td>
-                        <td className="py-3 px-3">
-                          <p className="font-semibold text-slate-800">{inv.customer?.name || 'Walk-in'}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{inv.customer?.phone || '-'}</p>
-                        </td>
+                    recentSales.map((inv: any) => {
+                      const custName = inv.customerSnapshot?.name || (typeof inv.customer === 'object' && inv.customer ? inv.customer.name : '') || 'Walk-in';
+                      const custMobile = inv.customerSnapshot?.mobile || (typeof inv.customer === 'object' && inv.customer ? inv.customer.mobile : '') || '-';
+
+                      return (
+                        <tr key={inv._id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">
+                            {inv.invoiceNumber}
+                          </td>
+                          <td className="py-3 px-3">
+                            <p className="font-semibold text-slate-800">{custName}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">📱 {custMobile}</p>
+                          </td>
                         <td className="py-3 px-3 text-slate-600">{formatDate(inv.createdAt)}</td>
                         <td className="py-3 px-3 text-right font-bold text-slate-900">
                           {formatCurrency(inv.grandTotal)}
@@ -263,7 +267,8 @@ export default function DashboardPage() {
                           </Link>
                         </td>
                       </tr>
-                    ))
+                    );
+                  })
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-slate-400">
