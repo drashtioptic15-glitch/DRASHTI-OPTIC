@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev && npm --prefix frontend run build",
+    "build": "npm --prefix backend install --include=dev && npm --prefix backend rebuild sqlite3 && npm --prefix frontend install --include=dev && npm --prefix frontend run build",
     "start": "node start.js",
     "create-admin": "npm --prefix backend run create-admin",
     "seed": "npm --prefix backend run seed"
