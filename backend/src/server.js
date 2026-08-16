@@ -71,12 +71,13 @@ app.use('/invoices', express.static(invoicesDir));
 app.use('/api', apiLimiter);
 
 // Health Check
-app.get('/api/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
   res.status(200).json({
     success: true,
+    status: 'ok',
     service: 'Drashti Optic Backend API',
-    status: 'Operational',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   });
 });
 
