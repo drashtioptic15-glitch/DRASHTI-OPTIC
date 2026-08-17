@@ -518,7 +518,7 @@ export default function ItemsPage() {
         onClose={() => setDeleteItemId(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete Item"
-        message="Are you sure you want to delete this optical product? Items linked to past invoices cannot be removed to maintain audit history."
+        message="Are you sure you want to delete this optical product from your catalog?"
         confirmText="Yes, Delete Product"
         isDangerous
         loading={isDeleting}
