@@ -117,15 +117,15 @@ export default function ItemsPage() {
 
   const handleOpenEditModal = (item: Item) => {
     setEditingItemId(item._id);
-    const catId = typeof item.category === 'object' ? item.category._id : item.category;
+    const catId = typeof item.category === 'object' && item.category ? item.category._id : (typeof item.category === 'string' ? item.category : '');
     setFormData({
-      name: item.name,
+      name: item.name || '',
       category: catId,
       sku: item.sku || '',
       brand: item.brand || '',
       description: item.description || '',
-      purchasePrice: item.purchasePrice,
-      sellingPrice: item.sellingPrice,
+      purchasePrice: item.purchasePrice || 0,
+      sellingPrice: item.sellingPrice || 0,
       status: item.status || 'active',
     });
     setIsModalOpen(true);
@@ -232,7 +232,7 @@ export default function ItemsPage() {
               <option value="all">All Categories</option>
               {categories.map((c) => (
                 <option key={c._id} value={c._id}>
-                  {c.name}
+                  {c?.name || 'Unnamed Category'}
                 </option>
               ))}
             </select>
@@ -283,21 +283,26 @@ export default function ItemsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => {
-                  const catName = typeof item.category === 'object' ? item.category.name : '-';
+                  const catName =
+                    typeof item.category === 'object' && item.category
+                      ? item.category.name
+                      : typeof item.category === 'string'
+                      ? item.category
+                      : '-';
 
                   return (
                     <tr key={item._id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4">
-                        <p className="font-bold text-slate-900">{item.name}</p>
+                        <p className="font-bold text-slate-900">{item.name || 'Unnamed Product'}</p>
                         <p className="text-[10px] text-slate-400 font-mono">SKU: {item.sku || 'N/A'}</p>
                       </td>
-                      <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">{catName}</td>
+                      <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">{catName || '-'}</td>
                       <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">{item.brand || '-'}</td>
                       <td className="py-3.5 px-3 text-right text-slate-500 whitespace-nowrap">
-                        {formatCurrency(item.purchasePrice)}
+                        {formatCurrency(item.purchasePrice || 0)}
                       </td>
                       <td className="py-3.5 px-3 text-right font-extrabold text-slate-900 whitespace-nowrap">
-                        {formatCurrency(item.sellingPrice)}
+                        {formatCurrency(item.sellingPrice || 0)}
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         <Badge variant={item.status === 'active' ? 'success' : 'neutral'} size="sm">
@@ -397,7 +402,7 @@ export default function ItemsPage() {
                 <option value="">Select Category</option>
                 {categories.map((c) => (
                   <option key={c._id} value={c._id}>
-                    {c.name}
+                    {c?.name || 'Unnamed Category'}
                   </option>
                 ))}
               </select>

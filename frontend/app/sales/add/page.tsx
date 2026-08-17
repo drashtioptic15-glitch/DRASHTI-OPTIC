@@ -286,7 +286,12 @@ export default function AddSalePage() {
       toast.success(`Updated ${selectedItemObj.name} in invoice`);
     } else {
       const baseTotal = unitPrice * addQuantity;
-      const catName = typeof selectedItemObj.category === 'object' ? selectedItemObj.category.name : '';
+      const catName =
+        typeof selectedItemObj.category === 'object' && selectedItemObj.category
+          ? selectedItemObj.category.name
+          : typeof selectedItemObj.category === 'string'
+          ? selectedItemObj.category
+          : '';
 
       const newItem: CartItem = {
         itemId: selectedItemObj._id,
@@ -689,7 +694,7 @@ export default function AddSalePage() {
                     <option value="all">All Categories</option>
                     {categories.map((cat) => (
                       <option key={cat._id} value={cat._id}>
-                        {cat.name}
+                        {cat?.name || 'Unnamed Category'}
                       </option>
                     ))}
                   </select>
@@ -706,7 +711,7 @@ export default function AddSalePage() {
                     {itemsList.length > 0 ? (
                       itemsList.map((item) => (
                         <option key={item._id} value={item._id}>
-                          {item.name} {item.brand ? `(${item.brand})` : ''} - ₹{item.sellingPrice}
+                          {item?.name || 'Unnamed Product'} {item?.brand ? `(${item.brand})` : ''} - ₹{item?.sellingPrice || 0}
                         </option>
                       ))
                     ) : (
