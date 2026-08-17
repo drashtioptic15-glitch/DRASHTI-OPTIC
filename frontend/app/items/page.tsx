@@ -168,14 +168,18 @@ export default function ItemsPage() {
     try {
       const res = await api.delete(`/items/${deleteItemId}`);
       if (res.data.success) {
-        toast.success('Product deleted successfully');
-        setDeleteItemId(null);
-        fetchItems(pagination.page);
+        toast.success(res.data.message || 'Product deleted successfully');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete product');
+      if (err.message && (err.message.includes('not found') || err.message.includes('404'))) {
+        toast.info('Product already removed from catalog');
+      } else {
+        toast.error(err.message || 'Failed to delete product');
+      }
     } finally {
+      setDeleteItemId(null);
       setIsDeleting(false);
+      fetchItems(pagination.page);
     }
   };
 

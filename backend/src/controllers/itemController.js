@@ -212,29 +212,25 @@ export const updateItem = async (req, res, next) => {
 // @route   DELETE /api/items/:id
 export const deleteItem = async (req, res, next) => {
   try {
-    const item = await Item.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found',
-      });
-    }
-
+    const itemId = req.params.id;
     const db = getDB();
+
     const invoiceMatch = await db.get(
       `SELECT COUNT(*) as count FROM invoices WHERE items LIKE ?`,
-      [`%${item._id}%`]
+      [`%${itemId}%`]
     );
     const usedInInvoice = invoiceMatch ? invoiceMatch.count : 0;
 
     if (usedInInvoice > 0) {
+      const item = await Item.findById(itemId);
+      const itemName = item?.name ? `'${item.name}'` : 'this product';
       return res.status(400).json({
         success: false,
-        message: `Cannot delete item '${item.name}': It is referenced in ${usedInInvoice} past invoice(s). You can change its status to 'Inactive' instead.`,
+        message: `Cannot delete ${itemName}: It is referenced in ${usedInInvoice} past invoice(s). You can change its status to 'Inactive' instead.`,
       });
     }
 
-    await Item.findByIdAndDelete(item._id);
+    await Item.findByIdAndDelete(itemId);
 
     res.status(200).json({
       success: true,

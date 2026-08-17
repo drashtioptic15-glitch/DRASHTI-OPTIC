@@ -136,23 +136,18 @@ export const updateCategory = async (req, res, next) => {
 // @route   DELETE /api/categories/:id
 export const deleteCategory = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found',
-      });
-    }
-
-    const itemCount = await Item.countDocuments({ category: category._id });
+    const categoryId = req.params.id;
+    const itemCount = await Item.countDocuments({ category: categoryId });
     if (itemCount > 0) {
+      const category = await Category.findById(categoryId);
+      const catName = category?.name ? `'${category.name}'` : 'this category';
       return res.status(400).json({
         success: false,
-        message: `Cannot delete category '${category.name}': There are ${itemCount} items linked to it. Please reassign or delete these items first.`,
+        message: `Cannot delete ${catName}: There are ${itemCount} items linked to it. Please reassign or delete these items first.`,
       });
     }
 
-    await Category.findByIdAndDelete(category._id);
+    await Category.findByIdAndDelete(categoryId);
 
     res.status(200).json({
       success: true,
