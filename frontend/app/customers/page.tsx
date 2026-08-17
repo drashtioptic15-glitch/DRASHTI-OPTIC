@@ -152,14 +152,18 @@ export default function CustomersPage() {
     try {
       const res = await api.delete(`/customers/${deleteCustomerId}`);
       if (res.data.success) {
-        toast.success('Customer removed successfully');
-        setDeleteCustomerId(null);
-        fetchCustomers(pagination.page);
+        toast.success(res.data.message || 'Customer removed successfully');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete customer');
+      if (err.message && (err.message.includes('not found') || err.message.includes('404'))) {
+        toast.info('Customer already removed from directory');
+      } else {
+        toast.error(err.message || 'Failed to delete customer');
+      }
     } finally {
+      setDeleteCustomerId(null);
       setIsDeleting(false);
+      fetchCustomers(pagination.page);
     }
   };
 
@@ -468,7 +472,7 @@ export default function CustomersPage() {
         onClose={() => setDeleteCustomerId(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete Customer Profile"
-        message="Are you sure you want to delete this customer? Customers with existing invoices cannot be deleted to preserve financial audit history."
+        message="Are you sure you want to delete this customer profile from your directory?"
         confirmText="Yes, Delete Customer"
         isDangerous
         loading={isDeleting}

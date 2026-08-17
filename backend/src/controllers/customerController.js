@@ -185,26 +185,11 @@ export const updateCustomer = async (req, res, next) => {
 // @route   DELETE /api/customers/:id
 export const deleteCustomer = async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id);
-    if (!customer) {
-      return res.status(404).json({
-        success: false,
-        message: 'Customer not found',
-      });
-    }
-
-    // Check if customer has invoices
-    const invoiceCount = await Invoice.countDocuments({ customer: customer._id });
-    if (invoiceCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete customer: ${customer.name} has ${invoiceCount} linked invoice(s). You can edit their details instead.`,
-      });
-    }
+    const customerId = req.params.id;
 
     // Delete customer prescriptions
-    await Prescription.deleteMany({ customer: customer._id });
-    await Customer.findByIdAndDelete(customer._id);
+    await Prescription.deleteMany({ customer: customerId });
+    await Customer.findByIdAndDelete(customerId);
 
     res.status(200).json({
       success: true,
