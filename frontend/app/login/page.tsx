@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@drashtioptic.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -99,7 +99,8 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="admin@drashtioptic.com"
+                    autoComplete="username"
+                    placeholder="Enter your email"
                     className="optic-input pl-10"
                   />
                 </div>
@@ -127,7 +128,8 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
                     className="optic-input pl-10 pr-10"
                   />
                   <button
@@ -170,15 +172,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-
-            {/* Hint for initial demo login */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-slate-800">Admin Account: </span>
-                <span>admin@drashtioptic.com</span>
-              </div>
-              <span className="bg-slate-200 px-2 py-0.5 rounded text-[11px] font-mono text-slate-700">Admin@123456</span>
-            </div>
           </div>
         </div>
       </div>

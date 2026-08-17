@@ -7,7 +7,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('admin@drashtioptic.com');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetData, setResetData] = useState<{ resetUrl?: string; resetToken?: string } | null>(null);
 
